@@ -25,8 +25,8 @@ addons_folder = xbmc.translatePath('special://home/addons')
 image = xbmc.translatePath(os.path.join(path, "icon.png"))
 
 plugin = Plugin()
-addon = xbmcaddon.Addon("plugin.video.hpomovie.vip")
-pluginrootpath = "plugin://plugin.video.hpomovie.vip"
+addon = xbmcaddon.Addon("plugin.video.movie.playlist")
+pluginrootpath = "plugin://plugin.video.movie.playlist"
 http = httplib2.Http(cache, disable_ssl_certificate_validation=True)
 query_url = "https://docs.google.com/spreadsheets/d/{sid}/gviz/tq?gid={gid}&headers=1&tq={tq}"
 sheet_headers = {
@@ -177,9 +177,9 @@ def getItems(url_path="0", tq="select A,B,C,D,E"):
 		if "plugin://" in item["path"]:
 			if "install-repo" in item["path"]:
 				item["is_playable"] = False
-			elif re.search("plugin.video.hpomovie.vip/(.+?)/.+?\://", item["path"]):
+			elif re.search("plugin.video.movie.playlist/(.+?)/.+?\://", item["path"]):
 				match = re.search(
-					"plugin.video.hpomovie.vip(/.+?/).+?\://", item["path"])
+					"plugin.video.movie.playlist(/.+?/).+?\://", item["path"])
 				tmp = item["path"].split(match.group(1))
 				tmp[-1] = urllib.quote_plus(tmp[-1])
 				item["path"] = match.group(1).join(tmp)
@@ -225,6 +225,36 @@ def getItems(url_path="0", tq="select A,B,C,D,E"):
 			elif any(service in item["path"] for service in ["fshare.vn/folder"]):
 				item["path"] = pluginrootpath + "/fshare/" + \
 					urllib.quote_plus(item["path"].encode("utf8"))
+				# item["path"] = "plugin://plugin.video.xshare/?mode=90&page=0&url=" + urllib.quote_plus(item["path"])
+			elif any(service in item["path"] for service in ["4share.vn/d/"]):
+				item["path"] = "plugin://plugin.video.xshare/?mode=38&page=0&url=" + \
+					urllib.quote_plus(item["path"])
+			elif any(service in item["path"] for service in ["4share.vn/f/"]):
+				# elif any(service in item["path"] for service in ["4share.vn/f/", "fshare.vn/file"]):
+				item["path"] = "plugin://plugin.video.xshare/?mode=3&page=0&url=" + \
+					urllib.quote_plus(item["path"])
+				item["is_playable"] = True
+				item["info"] = {"type": "video"}
+				item["path"] = pluginrootpath + "/play/" + urllib.quote_plus(item["path"])
+			elif "youtube.com/channel" in item["path"]:
+				# https://www.youtube.com/channel/UC-9-kyTW8ZkZNDHQJ6FgpwQ
+				yt_route = "ytcp" if "playlists" in item["path"] else "ytc"
+				yt_cid = re.compile("youtube.com/channel/(.+?)$").findall(item["path"])[0]
+				item["path"] = "plugin://plugin.video.kodi4vn.launcher/%s/%s/" % (
+					yt_route, yt_cid)
+				item["path"] = item["path"].replace("/playlists", "")
+			elif "youtube.com/playlist" in item["path"]:
+				# https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI
+				yt_pid = re.compile("list=(.+?)$").findall(item["path"])[0]
+				item["path"] = "plugin://plugin.video.kodi4vn.launcher/ytp/%s/" % yt_pid
+			elif any(ext in item["path"] for ext in [".png", ".jpg", ".bmp", ".jpeg"]):
+				item["path"] = "plugin://plugin.video.kodi4vn.launcher/showimage/%s/" % urllib.quote_plus(
+					item["path"])
+			elif re.search("\.ts$", item["path"]):
+				item["path"] = "plugin://plugin.video.f4mTester/?url=%s&streamtype=TSDOWNLOADER&use_proxy_for_chunks=True&name=%s" % (
+					urllib.quote(item["path"]),
+					urllib.quote_plus(item["label"])
+				)
 				item["path"] = pluginrootpath + \
 					"/executebuiltin/" + urllib.quote_plus(item["path"])
 			else:
@@ -732,7 +762,7 @@ def AddTracking(items):
 	'''
 
 	for item in items:
-		if "plugin.video.hpomovie.vip" in item["path"]:
+		if "plugin.video.movie.playlist" in item["path"]:
 			tmps = item["path"].split("?")
 			if len(tmps) == 1:
 				tail = ""
